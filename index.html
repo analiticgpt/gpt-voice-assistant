@@ -3,16 +3,123 @@
 <head>
   <meta charset="UTF-8">
   <title>GPT Voice Assistant</title>
+  <style>
+    body { font-family: sans-serif; margin: 30px; }
+    #mic-btn { font-size: 20px; padding: 10px 30px; }
+    #status { margin-top: 20px; }
+    #output { margin-top: 30px; font-size: 18px; }
+    #audio-player { margin-top: 20px; }
+  </style>
 </head>
 <body>
   <h2>GPT Voice Assistant (Демо)</h2>
   <button id="mic-btn">🎤 Говорить</button>
   <div id="status"></div>
+  <div id="output"></div>
+  <audio id="audio-player" controls style="display:none"></audio>
+
   <script>
-    // Тут позже будет весь скрипт для микрофона и общения
-    document.getElementById('mic-btn').onclick = () => {
-      alert('Пока тут только кнопка! Жду от GPT дальнейших инструкций.');
+    // ========== НАСТРОЙКИ ===============
+    // Твой прокси Render для ElevenLabs Streaming API:
+    const PROXY_URL = "https://elevenlabs-render-proxy.onrender.com/stream";
+    // voice_id для ElevenLabs:
+    const VOICE_ID = "Yko7PKHZNXotIFUBG7I9"; // пример, замени на свой если нужно
+
+    // ========== ФУНКЦИИ ДЛЯ РАБОТЫ ==========
+
+    // 1. Распознавание речи браузером (SpeechRecognition)
+    async function recognizeSpeech() {
+      return new Promise((resolve, reject) => {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+          alert("SpeechRecognition не поддерживается в этом браузере");
+          return reject("no-browser-support");
+        }
+        const recognition = new SpeechRecognition();
+        recognition.lang = "ru-RU";
+        recognition.start();
+        document.getElementById("status").innerText = "🎙️ Говори...";
+        recognition.onresult = (event) => {
+          const text = event.results[0][0].transcript;
+          recognition.stop();
+          document.getElementById("status").innerText = "";
+          resolve(text);
+        };
+        recognition.onerror = (err) => {
+          document.getElementById("status").innerText = "Ошибка распознавания";
+          recognition.stop();
+          reject(err.error);
+        };
+      });
     }
+
+    // 2. Отправка текста в GPT (через OpenAI API)
+    async function askGPT(prompt) {
+      const OPENAI_KEY = "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"; // ВСТАВЬ СВОЙ OpenAI API ключ сюда!
+      const url = "https://api.openai.com/v1/chat/completions";
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer " + OPENAI_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-3.5-turbo", // или gpt-4o, если доступен
+          messages: [
+            { role: "system", content: "Ты дружелюбный голосовой ассистент." },
+            { role: "user", content: prompt }
+          ]
+        })
+      });
+      const data = await res.json();
+      return data.choices[0].message.content;
+    }
+
+    // 3. Озвучка текста через ElevenLabs Streaming API (прокси)
+    async function playTTS(text) {
+      document.getElementById("status").innerText = "Озвучка ответа...";
+      const res = await fetch(PROXY_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text,
+          voice_id: VOICE_ID,
+          model_id: "eleven_multilingual_v2",
+          output_format: "mp3_44100_128"
+        })
+      });
+      if (!res.body) {
+        alert("Ошибка озвучки");
+        return;
+      }
+      // Чтение потока в буфер (просто и совместимо)
+      const audioData = await res.arrayBuffer();
+      const blob = new Blob([audioData], { type: "audio/mpeg" });
+      const audioUrl = URL.createObjectURL(blob);
+      const audio = document.getElementById("audio-player");
+      audio.src = audioUrl;
+      audio.style.display = "block";
+      audio.play();
+      document.getElementById("status").innerText = "";
+    }
+
+    // ========== Основной цикл ==========
+
+    document.getElementById("mic-btn").onclick = async () => {
+      document.getElementById("output").innerText = "";
+      try {
+        // 1. Распознаём речь
+        const userText = await recognizeSpeech();
+        document.getElementById("output").innerText = "🧑: " + userText;
+        // 2. Отправляем в GPT
+        const gptAnswer = await askGPT(userText);
+        document.getElementById("output").innerText += "\n🤖: " + gptAnswer;
+        // 3. Озвучиваем через ElevenLabs
+        await playTTS(gptAnswer);
+      } catch (e) {
+        document.getElementById("status").innerText = "Ошибка: " + e;
+      }
+    };
   </script>
 </body>
 </html>
