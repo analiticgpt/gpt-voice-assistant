@@ -20,14 +20,10 @@
 
   <script>
     // ========== НАСТРОЙКИ ===============
-    // Твой прокси Render для ElevenLabs Streaming API:
     const PROXY_URL = "https://elevenlabs-render-proxy.onrender.com/stream";
-    // voice_id для ElevenLabs:
-    const VOICE_ID = "Yko7PKHZNXotIFUBG7I9"; // пример, замени на свой если нужно
+    const VOICE_ID = "Yko7PKHZNXotIFUBG7I9";
 
-    // ========== ФУНКЦИИ ДЛЯ РАБОТЫ ==========
-
-    // 1. Распознавание речи браузером (SpeechRecognition)
+    // 1. Распознавание речи браузером
     async function recognizeSpeech() {
       return new Promise((resolve, reject) => {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -40,9 +36,7 @@
         recognition.start();
         document.getElementById("status").innerText = "🎙️ Говори...";
         recognition.onresult = (event) => {
-          const text = event.results && event.results[0] && event.results[0][0]
-            ? event.results[0][0].transcript
-            : "";
+          const text = event.results[0][0].transcript;
           recognition.stop();
           document.getElementById("status").innerText = "";
           resolve(text);
@@ -55,7 +49,7 @@
       });
     }
 
-    // 2. Отправка текста в GPT (через OpenAI API)
+    // 2. Отправка текста в GPT (с обработкой ошибок)
     async function askGPT(prompt) {
       const OPENAI_KEY = "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";
       const url = "https://api.openai.com/v1/chat/completions";
@@ -74,16 +68,10 @@
         })
       });
       const data = await res.json();
-      // Проверяем наличие нужных полей
-      if (
-        data &&
-        data.choices &&
-        Array.isArray(data.choices) &&
-        data.choices[0] &&
-        data.choices[0].message &&
-        data.choices[0].message.content
-      ) {
+      if (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) {
         return data.choices[0].message.content;
+      } else if (data.error && data.error.message) {
+        throw new Error("OpenAI error: " + data.error.message);
       } else {
         throw new Error("Некорректный ответ от OpenAI: " + JSON.stringify(data));
       }
@@ -117,7 +105,6 @@
     }
 
     // ========== Основной цикл ==========
-
     document.getElementById("mic-btn").onclick = async () => {
       document.getElementById("output").innerText = "";
       try {
