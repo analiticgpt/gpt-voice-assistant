@@ -40,7 +40,9 @@
         recognition.start();
         document.getElementById("status").innerText = "🎙️ Говори...";
         recognition.onresult = (event) => {
-          const text = event.results[0][0].transcript;
+          const text = event.results && event.results[0] && event.results[0][0]
+            ? event.results[0][0].transcript
+            : "";
           recognition.stop();
           document.getElementById("status").innerText = "";
           resolve(text);
@@ -55,7 +57,7 @@
 
     // 2. Отправка текста в GPT (через OpenAI API)
     async function askGPT(prompt) {
-      const OPENAI_KEY = "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"; // ВСТАВЬ СВОЙ OpenAI API ключ сюда!
+      const OPENAI_KEY = "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";
       const url = "https://api.openai.com/v1/chat/completions";
       const res = await fetch(url, {
         method: "POST",
@@ -64,7 +66,7 @@
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "gpt-3.5-turbo", // или gpt-4o, если доступен
+          model: "gpt-3.5-turbo",
           messages: [
             { role: "system", content: "Ты дружелюбный голосовой ассистент." },
             { role: "user", content: prompt }
@@ -72,7 +74,19 @@
         })
       });
       const data = await res.json();
-      return data.choices[0].message.content;
+      // Проверяем наличие нужных полей
+      if (
+        data &&
+        data.choices &&
+        Array.isArray(data.choices) &&
+        data.choices[0] &&
+        data.choices[0].message &&
+        data.choices[0].message.content
+      ) {
+        return data.choices[0].message.content;
+      } else {
+        throw new Error("Некорректный ответ от OpenAI: " + JSON.stringify(data));
+      }
     }
 
     // 3. Озвучка текста через ElevenLabs Streaming API (прокси)
@@ -92,7 +106,6 @@
         alert("Ошибка озвучки");
         return;
       }
-      // Чтение потока в буфер (просто и совместимо)
       const audioData = await res.arrayBuffer();
       const blob = new Blob([audioData], { type: "audio/mpeg" });
       const audioUrl = URL.createObjectURL(blob);
