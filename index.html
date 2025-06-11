@@ -20,6 +20,7 @@
 
   <script>
     // ========== НАСТРОЙКИ ===============
+    const OPENAI_PROXY_URL = "https://openai-gpt-proxy.onrender.com/gpt";
     const PROXY_URL = "https://elevenlabs-render-proxy.onrender.com/stream";
     const VOICE_ID = "Yko7PKHZNXotIFUBG7I9";
 
@@ -49,14 +50,11 @@
       });
     }
 
-    // 2. Отправка текста в GPT (с обработкой ошибок)
+    // 2. Отправка текста в GPT (через твой ПРОКСИ)
     async function askGPT(prompt) {
-      const OPENAI_KEY = "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";
-      const url = "https://api.openai.com/v1/chat/completions";
-      const res = await fetch(url, {
+      const res = await fetch(OPENAI_PROXY_URL, {
         method: "POST",
         headers: {
-          "Authorization": "Bearer " + OPENAI_KEY,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -73,7 +71,7 @@
       } else if (data.error && data.error.message) {
         throw new Error("OpenAI error: " + data.error.message);
       } else {
-        throw new Error("Некорректный ответ от OpenAI: " + JSON.stringify(data));
+        throw new Error("Некорректный ответ от OpenAI-прокси: " + JSON.stringify(data));
       }
     }
 
