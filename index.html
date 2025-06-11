@@ -54,9 +54,7 @@
     async function askGPT(prompt) {
       const res = await fetch(OPENAI_PROXY_URL, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           model: "gpt-3.5-turbo",
           messages: [
