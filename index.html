@@ -50,28 +50,28 @@
       });
     }
 
-    // 2. Отправка текста в GPT (через твой ПРОКСИ)
-    async function askGPT(prompt) {
-      const res = await fetch(OPENAI_PROXY_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "gpt-3.5-turbo",
-          messages: [
-            { role: "system", content: "Ты дружелюбный голосовой ассистент." },
-            { role: "user", content: prompt }
-          ]
-        })
-      });
-      const data = await res.json();
-      if (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) {
-        return data.choices[0].message.content;
-      } else if (data.error && data.error.message) {
-        throw new Error("OpenAI error: " + data.error.message);
-      } else {
-        throw new Error("Некорректный ответ от OpenAI-прокси: " + JSON.stringify(data));
-      }
-    }
+// 2. Отправка текста в GPT через OpenAI-прокси (без промта вообще)
+async function askGPT(prompt) {
+  const url = "https://openai-gpt-proxy.onrender.com/gpt";
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      prompt: prompt || "Привет", // если промт пустой, отправляем "Привет"
+    })
+  });
+  const data = await res.json();
+  if (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) {
+    return data.choices[0].message.content;
+  } else if (data.error) {
+    throw new Error("OpenAI-прокси ошибка: " + data.error);
+  } else {
+    throw new Error("Некорректный ответ от OpenAI-прокси: " + JSON.stringify(data));
+  }
+}
+
 
     // 3. Озвучка текста через ElevenLabs Streaming API (прокси)
     async function playTTS(text) {
