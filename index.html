@@ -68,34 +68,56 @@
       const res = await fetch(OPENAI_PROXY_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "gpt-3.5-turbo", messages })
+        body: JSON.stringify({ model: "gpt-4o", messages }) // faster model
       });
       const data = await res.json();
       return data.choices?.[0]?.message?.content || "Ошибка ответа от GPT";
     }
 
     async function playTTS(text) {
-      document.getElementById("status").innerText = "🔊 Озвучка...";
+      document.getElementById("status").innerText = "🔊 Озвучка (поток)...";
 
-      const res = await fetch(PROXY_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          text,
-          voice_id: VOICE_ID,
-          model_id: "eleven_multilingual_v2",
-          output_format: "mp3_44100_128"
-        })
+      const audio = document.getElementById("audio-player");
+      audio.src = "";
+
+      const mediaSource = new MediaSource();
+      audio.src = URL.createObjectURL(mediaSource);
+
+      mediaSource.addEventListener("sourceopen", async () => {
+        const sourceBuffer = mediaSource.addSourceBuffer("audio/mpeg");
+        const response = await fetch(PROXY_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            text,
+            voice_id: VOICE_ID,
+            model_id: "eleven_multilingual_v2",
+            output_format: "mp3_44100_128"
+          })
+        });
+
+        const reader = response.body.getReader();
+
+        const readChunk = async () => {
+          const { done, value } = await reader.read();
+          if (done) {
+            mediaSource.endOfStream();
+            return;
+          }
+          if (sourceBuffer.updating) {
+            await new Promise(resolve => sourceBuffer.addEventListener("updateend", resolve, { once: true }));
+          }
+          sourceBuffer.appendBuffer(value);
+          readChunk();
+        };
+
+        readChunk();
       });
 
-      const audioBlob = new Blob([await res.arrayBuffer()], { type: "audio/mpeg" });
-      const audioUrl = URL.createObjectURL(audioBlob);
-      const audio = document.getElementById("audio-player");
-      audio.src = audioUrl;
-      audio.play();
       await new Promise((resolve) => {
         audio.onended = resolve;
         audio.onerror = resolve;
+        audio.play().catch(resolve);
       });
 
       document.getElementById("status").innerText = "";
@@ -129,7 +151,7 @@
       dialogLoop();
     };
 
-    // 🧠 Прогрев STT-движка при загрузке страницы
+    // STT прогрев
     window.addEventListener("load", () => {
       try {
         const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
