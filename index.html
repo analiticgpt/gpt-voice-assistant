@@ -75,10 +75,11 @@
     }
 
     async function playTTS(text) {
-      document.getElementById("status").innerText = "🔊 Озвучка (поток)...";
+      document.getElementById("status").innerText = "🔊 Озвучка (стрим)...";
 
       const audio = document.getElementById("audio-player");
       audio.src = "";
+      audio.load();
 
       const mediaSource = new MediaSource();
       audio.src = URL.createObjectURL(mediaSource);
@@ -97,27 +98,45 @@
         });
 
         const reader = response.body.getReader();
+        const queue = [];
+        let feeding = false;
+        let firstChunkReceived = false;
 
-        const readChunk = async () => {
-          const { done, value } = await reader.read();
-          if (done) {
-            mediaSource.endOfStream();
-            return;
-          }
-          if (sourceBuffer.updating) {
-            await new Promise(resolve => sourceBuffer.addEventListener("updateend", resolve, { once: true }));
-          }
-          sourceBuffer.appendBuffer(value);
-          readChunk();
+        const feedBuffer = async () => {
+          if (feeding || queue.length === 0 || sourceBuffer.updating) return;
+          feeding = true;
+          const chunk = queue.shift();
+          sourceBuffer.appendBuffer(chunk);
+          await new Promise(resolve => {
+            sourceBuffer.addEventListener("updateend", resolve, { once: true });
+          });
+          feeding = false;
+          feedBuffer();
         };
 
-        readChunk();
+        const readStream = async () => {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) {
+              if (!sourceBuffer.updating) mediaSource.endOfStream();
+              break;
+            }
+            queue.push(value);
+            feedBuffer();
+
+            if (!firstChunkReceived) {
+              firstChunkReceived = true;
+              audio.play().catch(() => {});
+            }
+          }
+        };
+
+        readStream();
       });
 
       await new Promise((resolve) => {
         audio.onended = resolve;
         audio.onerror = resolve;
-        audio.play().catch(resolve);
       });
 
       document.getElementById("status").innerText = "";
