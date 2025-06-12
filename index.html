@@ -12,7 +12,7 @@
   </style>
 </head>
 <body>
-  <h2>GPT Voice Assistant (v2)</h2>
+  <h2>GPT Voice Assistant (WebSocket Edition)</h2>
   <button id="mic-btn">🎤 Начать</button>
   <div id="status"></div>
   <div id="output"></div>
@@ -20,9 +20,9 @@
 
   <script>
     const OPENAI_PROXY_URL = "https://openai-gpt-proxy.onrender.com/gpt";
-    const PROXY_URL = "https://elevenlabs-render-proxy.onrender.com/stream";
-    const VOICE_ID = "Yko7PKHZNXotIFUBG7I9";
+    const SOCKET_URL = "wss://gpt-voice-assistant-1d58.onrender.com"; // ← вставлено твоё
 
+    const VOICE_ID = "Yko7PKHZNXotIFUBG7I9";
     let messages = [
       { role: "system", content: "Ты агрессивный и грубый уголовник, который общается только на уголовной фене." }
     ];
@@ -68,14 +68,14 @@
       const res = await fetch(OPENAI_PROXY_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "gpt-4o", messages }) // faster model
+        body: JSON.stringify({ model: "gpt-4o", messages })
       });
       const data = await res.json();
       return data.choices?.[0]?.message?.content || "Ошибка ответа от GPT";
     }
 
     async function playTTS(text) {
-      document.getElementById("status").innerText = "🔊 Озвучка (стрим)...";
+      document.getElementById("status").innerText = "🔊 Озвучка (WebSocket)...";
 
       const audio = document.getElementById("audio-player");
       audio.src = "";
@@ -84,60 +84,40 @@
       const mediaSource = new MediaSource();
       audio.src = URL.createObjectURL(mediaSource);
 
-      mediaSource.addEventListener("sourceopen", async () => {
+      const socket = new WebSocket(SOCKET_URL);
+
+      socket.addEventListener("open", () => {
+        socket.send(JSON.stringify({ text }));
+      });
+
+      mediaSource.addEventListener("sourceopen", () => {
         const sourceBuffer = mediaSource.addSourceBuffer("audio/mpeg");
-        const response = await fetch(PROXY_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            text,
-            voice_id: VOICE_ID,
-            model_id: "eleven_multilingual_v2",
-            output_format: "mp3_44100_128"
-          })
+
+        socket.addEventListener("message", async (event) => {
+          const chunk = event.data;
+          if (sourceBuffer.updating) {
+            await new Promise(resolve => sourceBuffer.addEventListener("updateend", resolve, { once: true }));
+          }
+          if (typeof chunk === "string" && chunk.includes("error")) {
+            document.getElementById("status").innerText = "⛔ Ошибка озвучки";
+            socket.close();
+            return;
+          }
+          sourceBuffer.appendBuffer(await chunk.arrayBuffer());
         });
 
-        const reader = response.body.getReader();
-        const queue = [];
-        let feeding = false;
-        let firstChunkReceived = false;
-
-        const feedBuffer = async () => {
-          if (feeding || queue.length === 0 || sourceBuffer.updating) return;
-          feeding = true;
-          const chunk = queue.shift();
-          sourceBuffer.appendBuffer(chunk);
-          await new Promise(resolve => {
-            sourceBuffer.addEventListener("updateend", resolve, { once: true });
-          });
-          feeding = false;
-          feedBuffer();
-        };
-
-        const readStream = async () => {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) {
-              if (!sourceBuffer.updating) mediaSource.endOfStream();
-              break;
-            }
-            queue.push(value);
-            feedBuffer();
-
-            if (!firstChunkReceived) {
-              firstChunkReceived = true;
-              audio.play().catch(() => {});
-            }
-          }
-        };
-
-        readStream();
+        socket.addEventListener("close", () => {
+          if (!sourceBuffer.updating) mediaSource.endOfStream();
+        });
       });
 
-      await new Promise((resolve) => {
-        audio.onended = resolve;
-        audio.onerror = resolve;
-      });
+      await Promise.race([
+        new Promise((resolve) => {
+          audio.onended = resolve;
+          audio.onerror = resolve;
+        }),
+        new Promise((resolve) => setTimeout(resolve, 5000)) // страховка
+      ]);
 
       document.getElementById("status").innerText = "";
     }
@@ -170,7 +150,6 @@
       dialogLoop();
     };
 
-    // STT прогрев
     window.addEventListener("load", () => {
       try {
         const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
