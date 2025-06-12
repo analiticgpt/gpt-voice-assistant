@@ -95,14 +95,18 @@
 
         socket.addEventListener("message", async (event) => {
           const chunk = event.data;
-          if (sourceBuffer.updating) {
-            await new Promise(resolve => sourceBuffer.addEventListener("updateend", resolve, { once: true }));
-          }
+
           if (typeof chunk === "string" && chunk.includes("error")) {
+            console.warn("Ошибка из сервера:", chunk); // 🔍 Лог ошибки
             document.getElementById("status").innerText = "⛔ Ошибка озвучки";
             socket.close();
             return;
           }
+
+          if (sourceBuffer.updating) {
+            await new Promise(resolve => sourceBuffer.addEventListener("updateend", resolve, { once: true }));
+          }
+
           sourceBuffer.appendBuffer(await chunk.arrayBuffer());
         });
 
@@ -116,7 +120,7 @@
           audio.onended = resolve;
           audio.onerror = resolve;
         }),
-        new Promise((resolve) => setTimeout(resolve, 5000)) // страховка
+        new Promise((resolve) => setTimeout(resolve, 5000))
       ]);
 
       document.getElementById("status").innerText = "";
