@@ -26,12 +26,13 @@
     let messages = [
       { role: "system", content: "Ты дружелюбный голосовой ассистент." }
     ];
+    let listening = false;
 
     async function recognizeSpeech() {
       return new Promise((resolve, reject) => {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognition) {
-          alert("SpeechRecognition не поддерживается в этом браузере");
+          alert("SpeechRecognition не поддерживается");
           return reject("no-browser-support");
         }
         const recognition = new SpeechRecognition();
@@ -89,21 +90,25 @@
     }
 
     async function mainLoop() {
+      if (listening) return;
+      listening = true;
+
       try {
-        const userText = await recognizeSpeech();
-        messages.push({ role: "user", content: userText });
-        document.getElementById("output").innerText += `🧑: ${userText}\n`;
+        while (true) {
+          const userText = await recognizeSpeech();
+          messages.push({ role: "user", content: userText });
+          document.getElementById("output").innerText += `🧑: ${userText}\n`;
 
-        const gptAnswer = await askGPT();
-        messages.push({ role: "assistant", content: gptAnswer });
-        document.getElementById("output").innerText += `🤖: ${gptAnswer}\n`;
+          const gptAnswer = await askGPT();
+          messages.push({ role: "assistant", content: gptAnswer });
+          document.getElementById("output").innerText += `🤖: ${gptAnswer}\n`;
 
-        await playTTS(gptAnswer);
-
-        // 🔁 Продолжаем слушать
-        mainLoop();
+          await playTTS(gptAnswer);
+        }
       } catch (e) {
         document.getElementById("status").innerText = "Ошибка: " + e;
+      } finally {
+        listening = false;
       }
     }
 
