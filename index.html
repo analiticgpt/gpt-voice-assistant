@@ -7,7 +7,7 @@
     body { font-family: sans-serif; margin: 30px; }
     #mic-btn { font-size: 20px; padding: 10px 30px; }
     #status { margin-top: 20px; }
-    #output { margin-top: 30px; font-size: 18px; }
+    #output { margin-top: 30px; font-size: 18px; white-space: pre-wrap; }
     #audio-player { margin-top: 20px; }
   </style>
 </head>
@@ -19,12 +19,14 @@
   <audio id="audio-player" controls style="display:none"></audio>
 
   <script>
-    // ========== НАСТРОЙКИ ===============
     const OPENAI_PROXY_URL = "https://openai-gpt-proxy.onrender.com/gpt";
     const PROXY_URL = "https://elevenlabs-render-proxy.onrender.com/stream";
     const VOICE_ID = "Yko7PKHZNXotIFUBG7I9";
 
-    // 1. Распознавание речи браузером
+    let messages = [
+      { role: "system", content: "Ты дружелюбный голосовой ассистент." }
+    ];
+
     async function recognizeSpeech() {
       return new Promise((resolve, reject) => {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -50,33 +52,20 @@
       });
     }
 
-async function askGPT(prompt) {
-  const url = "https://openai-gpt-proxy.onrender.com/gpt";
-  const body = {
-    model: "gpt-3.5-turbo",
-    messages: [
-      { role: "system", content: "Ты дружелюбный голосовой ассистент." },
-      { role: "user", content: prompt || "Привет" }
-    ]
-  };
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body)
-  });
-  const data = await res.json();
-  if (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) {
-    return data.choices[0].message.content;
-  } else if (data.error) {
-    throw new Error("OpenAI-прокси ошибка: " + (data.error.message || data.error));
-  } else {
-    throw new Error("Некорректный ответ от OpenAI-прокси: " + JSON.stringify(data));
-  }
-}
+    async function askGPT() {
+      const res = await fetch(OPENAI_PROXY_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "gpt-3.5-turbo", messages })
+      });
+      const data = await res.json();
+      if (data.choices && data.choices[0] && data.choices[0].message) {
+        return data.choices[0].message.content;
+      } else {
+        throw new Error("GPT ошибка: " + JSON.stringify(data));
+      }
+    }
 
-
-
-    // 3. Озвучка текста через ElevenLabs Streaming API (прокси)
     async function playTTS(text) {
       document.getElementById("status").innerText = "Озвучка ответа...";
       const res = await fetch(PROXY_URL, {
@@ -89,35 +78,38 @@ async function askGPT(prompt) {
           output_format: "mp3_44100_128"
         })
       });
-      if (!res.body) {
-        alert("Ошибка озвучки");
-        return;
-      }
       const audioData = await res.arrayBuffer();
       const blob = new Blob([audioData], { type: "audio/mpeg" });
       const audioUrl = URL.createObjectURL(blob);
       const audio = document.getElementById("audio-player");
       audio.src = audioUrl;
       audio.style.display = "block";
-      audio.play();
+      await audio.play();
       document.getElementById("status").innerText = "";
     }
 
-    // ========== Основной цикл ==========
-    document.getElementById("mic-btn").onclick = async () => {
-      document.getElementById("output").innerText = "";
+    async function mainLoop() {
       try {
-        // 1. Распознаём речь
         const userText = await recognizeSpeech();
-        document.getElementById("output").innerText = "🧑: " + userText;
-        // 2. Отправляем в GPT
-        const gptAnswer = await askGPT(userText);
-        document.getElementById("output").innerText += "\n🤖: " + gptAnswer;
-        // 3. Озвучиваем через ElevenLabs
+        messages.push({ role: "user", content: userText });
+        document.getElementById("output").innerText += `🧑: ${userText}\n`;
+
+        const gptAnswer = await askGPT();
+        messages.push({ role: "assistant", content: gptAnswer });
+        document.getElementById("output").innerText += `🤖: ${gptAnswer}\n`;
+
         await playTTS(gptAnswer);
+
+        // 🔁 Продолжаем слушать
+        mainLoop();
       } catch (e) {
         document.getElementById("status").innerText = "Ошибка: " + e;
       }
+    }
+
+    document.getElementById("mic-btn").onclick = () => {
+      document.getElementById("output").innerText = "";
+      mainLoop();
     };
   </script>
 </body>
