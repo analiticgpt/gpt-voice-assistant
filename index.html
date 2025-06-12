@@ -2,21 +2,21 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>GPT Voice Assistant</title>
+  <title>GPT Voice Assistant + VAD</title>
   <style>
     body { font-family: sans-serif; margin: 30px; }
     #mic-btn { font-size: 20px; padding: 10px 30px; }
     #status { margin-top: 20px; }
     #output { margin-top: 30px; font-size: 18px; white-space: pre-wrap; }
-    #audio-player { margin-top: 20px; }
+    #audio-player { margin-top: 20px; display: none; }
   </style>
 </head>
 <body>
-  <h2>GPT Voice Assistant (Демо)</h2>
-  <button id="mic-btn">🎤 Говорить</button>
+  <h2>GPT Voice Assistant (с VAD)</h2>
+  <button id="mic-btn">🎤 Начать</button>
   <div id="status"></div>
   <div id="output"></div>
-  <audio id="audio-player" controls style="display:none"></audio>
+  <audio id="audio-player" autoplay></audio>
 
   <script>
     const OPENAI_PROXY_URL = "https://openai-gpt-proxy.onrender.com/gpt";
@@ -26,30 +26,73 @@
     let messages = [
       { role: "system", content: "Ты дружелюбный голосовой ассистент." }
     ];
-    let listening = false;
+    let isRunning = false;
 
-    async function recognizeSpeech() {
+    async function waitForVoice(threshold = 0.05) {
+      document.getElementById("status").innerText = "🟢 Ожидаю голос...";
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const source = audioCtx.createMediaStreamSource(stream);
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 2048;
+      source.connect(analyser);
+
+      const data = new Uint8Array(analyser.fftSize);
+
+      return new Promise((resolve) => {
+        const checkVolume = () => {
+          analyser.getByteTimeDomainData(data);
+          let sum = 0;
+          for (let i = 0; i < data.length; i++) {
+            const val = (data[i] - 128) / 128;
+            sum += val * val;
+          }
+          const volume = Math.sqrt(sum / data.length);
+          if (volume > threshold) {
+            stream.getTracks().forEach(t => t.stop());
+            audioCtx.close();
+            resolve();
+          } else {
+            requestAnimationFrame(checkVolume);
+          }
+        };
+        checkVolume();
+      });
+    }
+
+    async function recognizeSpeech(timeout = 10000) {
       return new Promise((resolve, reject) => {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-          alert("SpeechRecognition не поддерживается");
-          return reject("no-browser-support");
-        }
+        if (!SpeechRecognition) return reject("SpeechRecognition не поддерживается");
+
         const recognition = new SpeechRecognition();
         recognition.lang = "ru-RU";
-        recognition.start();
-        document.getElementById("status").innerText = "🎙️ Говори...";
-        recognition.onresult = (event) => {
-          const text = event.results[0][0].transcript;
+        recognition.interimResults = false;
+
+        const timer = setTimeout(() => {
           recognition.stop();
+          reject("⏱️ Время ожидания истекло");
+        }, timeout);
+
+        recognition.onstart = () => {
+          document.getElementById("status").innerText = "🎙️ Говори...";
+        };
+
+        recognition.onresult = (event) => {
+          clearTimeout(timer);
+          recognition.stop();
+          const text = event.results[0][0].transcript;
           document.getElementById("status").innerText = "";
           resolve(text);
         };
+
         recognition.onerror = (err) => {
-          document.getElementById("status").innerText = "Ошибка распознавания";
+          clearTimeout(timer);
           recognition.stop();
           reject(err.error);
         };
+
+        recognition.start();
       });
     }
 
@@ -60,15 +103,11 @@
         body: JSON.stringify({ model: "gpt-3.5-turbo", messages })
       });
       const data = await res.json();
-      if (data.choices && data.choices[0] && data.choices[0].message) {
-        return data.choices[0].message.content;
-      } else {
-        throw new Error("GPT ошибка: " + JSON.stringify(data));
-      }
+      return data.choices?.[0]?.message?.content || "Ошибка ответа от GPT";
     }
 
     async function playTTS(text) {
-      document.getElementById("status").innerText = "Озвучка ответа...";
+      document.getElementById("status").innerText = "🔊 Озвучка...";
       const res = await fetch(PROXY_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -79,42 +118,46 @@
           output_format: "mp3_44100_128"
         })
       });
-      const audioData = await res.arrayBuffer();
-      const blob = new Blob([audioData], { type: "audio/mpeg" });
-      const audioUrl = URL.createObjectURL(blob);
+
+      const audioBlob = new Blob([await res.arrayBuffer()], { type: "audio/mpeg" });
+      const audioUrl = URL.createObjectURL(audioBlob);
       const audio = document.getElementById("audio-player");
       audio.src = audioUrl;
       audio.style.display = "block";
       await audio.play();
+      await new Promise((resolve) => {
+        audio.onended = resolve;
+        audio.onerror = resolve;
+      });
       document.getElementById("status").innerText = "";
     }
 
-    async function mainLoop() {
-      if (listening) return;
-      listening = true;
-
+    async function dialogLoop() {
+      if (isRunning) return;
+      isRunning = true;
       try {
         while (true) {
+          await waitForVoice(); // ⏱️ ждём, пока ты начнёшь говорить
           const userText = await recognizeSpeech();
           messages.push({ role: "user", content: userText });
           document.getElementById("output").innerText += `🧑: ${userText}\n`;
 
-          const gptAnswer = await askGPT();
-          messages.push({ role: "assistant", content: gptAnswer });
-          document.getElementById("output").innerText += `🤖: ${gptAnswer}\n`;
+          const reply = await askGPT();
+          messages.push({ role: "assistant", content: reply });
+          document.getElementById("output").innerText += `🤖: ${reply}\n`;
 
-          await playTTS(gptAnswer);
+          await playTTS(reply);
         }
-      } catch (e) {
-        document.getElementById("status").innerText = "Ошибка: " + e;
+      } catch (err) {
+        document.getElementById("status").innerText = "⛔ " + err;
       } finally {
-        listening = false;
+        isRunning = false;
       }
     }
 
     document.getElementById("mic-btn").onclick = () => {
       document.getElementById("output").innerText = "";
-      mainLoop();
+      dialogLoop();
     };
   </script>
 </body>
