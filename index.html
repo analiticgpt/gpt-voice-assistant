@@ -89,7 +89,7 @@
       socket.addEventListener("open", () => {
         setTimeout(() => {
           socket.send(JSON.stringify({ text }));
-        }, 150); // ⏱️ небольшая задержка перед отправкой текста
+        }, 150);
       });
 
       mediaSource.addEventListener("sourceopen", () => {
@@ -104,6 +104,8 @@
             socket.close();
             return;
           }
+
+          console.log("🎧 Пришёл аудиофрейм в браузер:", chunk);
 
           if (sourceBuffer.updating) {
             await new Promise(resolve => sourceBuffer.addEventListener("updateend", resolve, { once: true }));
