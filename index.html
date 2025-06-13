@@ -20,7 +20,7 @@
 
   <script>
     const OPENAI_PROXY_URL = "https://openai-gpt-proxy.onrender.com/gpt";
-    const STREAM_URL = "https://elevenlabs-render-proxy.onrender.com/stream"; // ← твой сервер
+    const STREAM_URL = "https://elevenlabs-render-proxy.onrender.com/stream";
 
     let messages = [
       { role: "system", content: "Ты агрессивный и грубый уголовник, который общается только на уголовной фене." }
@@ -72,36 +72,42 @@
     async function playTTS(text) {
       document.getElementById("status").innerText = "🔊 Озвучка...";
 
-      try {
-        const res = await fetch(STREAM_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text })
-        });
+      const res = await fetch(STREAM_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text })
+      });
 
-        if (!res.ok) {
-          document.getElementById("status").innerText = "⛔ Ошибка озвучки";
-          return;
-        }
-
-        const audioBlob = new Blob([await res.arrayBuffer()], { type: "audio/mpeg" });
-        const audioUrl = URL.createObjectURL(audioBlob);
-
-        const audio = document.getElementById("audio-player");
-        audio.pause();
-        audio.src = audioUrl;
-        audio.load();
-        audio.play();
-
-        await new Promise(resolve => {
-          audio.onended = resolve;
-          audio.onerror = resolve;
-        });
-
-      } catch (e) {
-        console.warn("Audio error:", e);
-        document.getElementById("status").innerText = "⛔ Ошибка воспроизведения";
+      if (!res.ok) {
+        document.getElementById("status").innerText = "⛔ Ошибка озвучки";
+        console.warn("🛑 Fetch error:", await res.text());
+        return;
       }
+
+      const audioBlob = new Blob([await res.arrayBuffer()], { type: "audio/mpeg" });
+      console.log("📦 Audio blob size:", audioBlob.size);
+
+      if (audioBlob.size < 1000) {
+        document.getElementById("status").innerText = "⛔ Пустой звук";
+        return;
+      }
+
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = document.getElementById("audio-player");
+      audio.src = audioUrl;
+      audio.load();
+
+      try {
+        await audio.play();
+      } catch (err) {
+        console.warn("🎧 autoplay error:", err);
+        document.getElementById("status").innerText = "⛔ Нажми на экран";
+      }
+
+      await new Promise(resolve => {
+        audio.onended = resolve;
+        audio.onerror = resolve;
+      });
 
       document.getElementById("status").innerText = "";
     }
@@ -112,7 +118,7 @@
 
       try {
         while (true) {
-          await new Promise(r => setTimeout(r, 300)); // чуть меньше задержка
+          await new Promise(r => setTimeout(r, 600));
           const userText = await recognizeSpeech();
           messages.push({ role: "user", content: userText });
           document.getElementById("output").innerText += `🧑: ${userText}\n`;
