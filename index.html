@@ -20,7 +20,7 @@
 
   <script>
     const OPENAI_PROXY_URL = "https://openai-gpt-proxy.onrender.com/gpt";
-    const STREAM_URL = "https://elevenlabs-render-proxy.onrender.com/stream"; // поменяй под себя
+    const STREAM_URL = "https://elevenlabs-render-proxy.onrender.com/stream"; // ← твой сервер
 
     let messages = [
       { role: "system", content: "Ты агрессивный и грубый уголовник, который общается только на уголовной фене." }
@@ -72,28 +72,36 @@
     async function playTTS(text) {
       document.getElementById("status").innerText = "🔊 Озвучка...";
 
-      const res = await fetch(STREAM_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text })
-      });
+      try {
+        const res = await fetch(STREAM_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text })
+        });
 
-      if (!res.ok) {
-        document.getElementById("status").innerText = "⛔ Ошибка озвучки";
-        return;
+        if (!res.ok) {
+          document.getElementById("status").innerText = "⛔ Ошибка озвучки";
+          return;
+        }
+
+        const audioBlob = new Blob([await res.arrayBuffer()], { type: "audio/mpeg" });
+        const audioUrl = URL.createObjectURL(audioBlob);
+
+        const audio = document.getElementById("audio-player");
+        audio.pause();
+        audio.src = audioUrl;
+        audio.load();
+        audio.play();
+
+        await new Promise(resolve => {
+          audio.onended = resolve;
+          audio.onerror = resolve;
+        });
+
+      } catch (e) {
+        console.warn("Audio error:", e);
+        document.getElementById("status").innerText = "⛔ Ошибка воспроизведения";
       }
-
-      const audioBlob = new Blob([await res.arrayBuffer()], { type: "audio/mpeg" });
-      const audioUrl = URL.createObjectURL(audioBlob);
-
-      const audio = document.getElementById("audio-player");
-      audio.src = audioUrl;
-      audio.play();
-
-      await new Promise(resolve => {
-        audio.onended = resolve;
-        audio.onerror = resolve;
-      });
 
       document.getElementById("status").innerText = "";
     }
@@ -104,7 +112,7 @@
 
       try {
         while (true) {
-          await new Promise(r => setTimeout(r, 600));
+          await new Promise(r => setTimeout(r, 300)); // чуть меньше задержка
           const userText = await recognizeSpeech();
           messages.push({ role: "user", content: userText });
           document.getElementById("output").innerText += `🧑: ${userText}\n`;
