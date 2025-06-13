@@ -87,7 +87,9 @@
       const socket = new WebSocket(SOCKET_URL);
 
       socket.addEventListener("open", () => {
-        socket.send(JSON.stringify({ text }));
+        setTimeout(() => {
+          socket.send(JSON.stringify({ text }));
+        }, 150); // ⏱️ небольшая задержка перед отправкой текста
       });
 
       mediaSource.addEventListener("sourceopen", () => {
@@ -97,7 +99,7 @@
           const chunk = event.data;
 
           if (typeof chunk === "string" && chunk.includes("error")) {
-            console.warn("Ошибка из сервера:", chunk); // 🔍 Лог ошибки
+            console.warn("Ошибка из сервера:", chunk);
             document.getElementById("status").innerText = "⛔ Ошибка озвучки";
             socket.close();
             return;
