@@ -12,7 +12,7 @@
   </style>
 </head>
 <body>
-  <h2>GPT Voice Assistant (WebSocket Edition)</h2>
+  <h2>GPT Voice Assistant (HTTP Stream)</h2>
   <button id="mic-btn">🎤 Начать</button>
   <div id="status"></div>
   <div id="output"></div>
@@ -20,9 +20,8 @@
 
   <script>
     const OPENAI_PROXY_URL = "https://openai-gpt-proxy.onrender.com/gpt";
-    const SOCKET_URL = "wss://elevenlabs-render-proxy.onrender.com";
+    const STREAM_URL = "https://elevenlabs-render-proxy.onrender.com/stream"; // поменяй под себя
 
-    const VOICE_ID = "Yko7PKHZNXotIFUBG7I9";
     let messages = [
       { role: "system", content: "Ты агрессивный и грубый уголовник, который общается только на уголовной фене." }
     ];
@@ -42,10 +41,7 @@
           reject("⏱️ Время ожидания истекло");
         }, timeout);
 
-        recognition.onstart = () => {
-          document.getElementById("status").innerText = "🎙️ Слушаю...";
-        };
-
+        recognition.onstart = () => document.getElementById("status").innerText = "🎙️ Слушаю...";
         recognition.onresult = (event) => {
           clearTimeout(timer);
           recognition.stop();
@@ -53,7 +49,6 @@
           document.getElementById("status").innerText = "";
           resolve(text);
         };
-
         recognition.onerror = (err) => {
           clearTimeout(timer);
           recognition.stop();
@@ -75,57 +70,30 @@
     }
 
     async function playTTS(text) {
-      document.getElementById("status").innerText = "🔊 Озвучка (WebSocket)...";
+      document.getElementById("status").innerText = "🔊 Озвучка...";
+
+      const res = await fetch(STREAM_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text })
+      });
+
+      if (!res.ok) {
+        document.getElementById("status").innerText = "⛔ Ошибка озвучки";
+        return;
+      }
+
+      const audioBlob = new Blob([await res.arrayBuffer()], { type: "audio/mpeg" });
+      const audioUrl = URL.createObjectURL(audioBlob);
 
       const audio = document.getElementById("audio-player");
-      audio.src = "";
-      audio.load();
+      audio.src = audioUrl;
+      audio.play();
 
-      const mediaSource = new MediaSource();
-      audio.src = URL.createObjectURL(mediaSource);
-
-      const socket = new WebSocket(SOCKET_URL);
-
-      socket.addEventListener("open", () => {
-        setTimeout(() => {
-          socket.send(JSON.stringify({ text }));
-        }, 150);
+      await new Promise(resolve => {
+        audio.onended = resolve;
+        audio.onerror = resolve;
       });
-
-      mediaSource.addEventListener("sourceopen", () => {
-        const sourceBuffer = mediaSource.addSourceBuffer("audio/mpeg");
-
-        socket.addEventListener("message", async (event) => {
-          const chunk = event.data;
-
-          if (typeof chunk === "string" && chunk.includes("error")) {
-            console.warn("Ошибка из сервера:", chunk);
-            document.getElementById("status").innerText = "⛔ Ошибка озвучки";
-            socket.close();
-            return;
-          }
-
-          console.log("🎧 Пришёл аудиофрейм в браузер:", chunk);
-
-          if (sourceBuffer.updating) {
-            await new Promise(resolve => sourceBuffer.addEventListener("updateend", resolve, { once: true }));
-          }
-
-          sourceBuffer.appendBuffer(await chunk.arrayBuffer());
-        });
-
-        socket.addEventListener("close", () => {
-          if (!sourceBuffer.updating) mediaSource.endOfStream();
-        });
-      });
-
-      await Promise.race([
-        new Promise((resolve) => {
-          audio.onended = resolve;
-          audio.onerror = resolve;
-        }),
-        new Promise((resolve) => setTimeout(resolve, 5000))
-      ]);
 
       document.getElementById("status").innerText = "";
     }
@@ -133,6 +101,7 @@
     async function dialogLoop() {
       if (isRunning) return;
       isRunning = true;
+
       try {
         while (true) {
           await new Promise(r => setTimeout(r, 600));
