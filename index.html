@@ -23,7 +23,6 @@
     const STREAM_URL = "https://elevenlabs-render-proxy.onrender.com/stream";
 
     let messages = [];
-    let step = 0;
     let isRunning = false;
 
     async function recognizeSpeech(timeout = 10000) {
@@ -63,12 +62,10 @@
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: messages.slice(-10),
-          step: step
+          messages: messages.slice(-10)
         })
       });
       const data = await res.json();
-      step = data.step || step;
       return data.choices?.[0]?.message?.content || "Ошибка ответа от GPT";
     }
 
@@ -140,8 +137,7 @@
     }
 
     document.getElementById("mic-btn").onclick = () => {
-      messages = []; // сбрасываем всё
-      step = 0;
+      messages = [];
       document.getElementById("output").innerText = "";
       dialogLoop();
     };
