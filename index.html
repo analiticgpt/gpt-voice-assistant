@@ -22,9 +22,8 @@
     const OPENAI_PROXY_URL = "https://openai-gpt-proxy.onrender.com/gpt";
     const STREAM_URL = "https://elevenlabs-render-proxy.onrender.com/stream";
 
-    let messages = [
-      { role: "system", content: "Ты агрессивный и грубый уголовник, который общается только на уголовной фене." }
-    ];
+    let messages = [];
+    let step = 0;
     let isRunning = false;
 
     async function recognizeSpeech(timeout = 10000) {
@@ -63,9 +62,13 @@
       const res = await fetch(OPENAI_PROXY_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "gpt-4o", messages })
+        body: JSON.stringify({
+          messages: messages.slice(-10),
+          step: step
+        })
       });
       const data = await res.json();
+      step = data.step || step;
       return data.choices?.[0]?.message?.content || "Ошибка ответа от GPT";
     }
 
@@ -137,6 +140,8 @@
     }
 
     document.getElementById("mic-btn").onclick = () => {
+      messages = []; // сбрасываем всё
+      step = 0;
       document.getElementById("output").innerText = "";
       dialogLoop();
     };
