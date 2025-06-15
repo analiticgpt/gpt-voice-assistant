@@ -28,7 +28,7 @@
     async function recognizeSpeech(timeout = 10000) {
       return new Promise((resolve, reject) => {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) return reject("SpeechRecognition не поддерживается");
+        if (!SpeechRecognition) return reject("🎤 Браузер не поддерживает распознавание речи");
 
         const recognition = new SpeechRecognition();
         recognition.lang = "ru-RU";
@@ -39,7 +39,11 @@
           reject("⏱️ Время ожидания истекло");
         }, timeout);
 
-        recognition.onstart = () => document.getElementById("status").innerText = "🎙️ Слушаю...";
+        recognition.onstart = () => {
+          console.log("🎙️ STT стартанул");
+          document.getElementById("status").innerText = "🎙️ Слушаю...";
+        };
+
         recognition.onresult = (event) => {
           clearTimeout(timer);
           recognition.stop();
@@ -47,10 +51,12 @@
           document.getElementById("status").innerText = "";
           resolve(text);
         };
+
         recognition.onerror = (err) => {
           clearTimeout(timer);
           recognition.stop();
-          reject(err.error);
+          console.warn("🛑 STT error:", err);
+          reject(err.error || "Ошибка распознавания");
         };
 
         recognition.start();
@@ -61,17 +67,14 @@
       const res = await fetch(OPENAI_PROXY_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: messages.slice(-10)
-        })
+        body: JSON.stringify({ messages: messages.slice(-10) })
       });
       const data = await res.json();
-      return data.choices?.[0]?.message?.content || "Ошибка ответа от GPT";
+      return data.choices?.[0]?.message?.content || "❌ GPT не ответил";
     }
 
     async function playTTS(text) {
       document.getElementById("status").innerText = "🔊 Озвучка...";
-
       const res = await fetch(STREAM_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -119,6 +122,7 @@
       try {
         while (true) {
           await new Promise(r => setTimeout(r, 600));
+
           const userText = await recognizeSpeech();
           messages.push({ role: "user", content: userText });
           document.getElementById("output").innerText += `🧑: ${userText}\n`;
@@ -130,29 +134,52 @@
           await playTTS(reply);
         }
       } catch (err) {
-        document.getElementById("status").innerText = "⛔ " + err;
+        console.warn("💥 Ошибка в цикле:", err);
+        document.getElementById("status").innerText = "⛔ Ошибка: " + err;
+        await new Promise(r => setTimeout(r, 1500)); // пауза перед перезапуском
       } finally {
         isRunning = false;
       }
     }
 
-    document.getElementById("mic-btn").onclick = () => {
-      messages = [];
+    document.getElementById("mic-btn").onclick = async () => {
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch {
+        alert("🎤 Разреши доступ к микрофону");
+        return;
+      }
+
       document.getElementById("output").innerText = "";
       dialogLoop();
     };
 
     window.addEventListener("load", () => {
+      // Прогрев STT
       try {
         const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!Recognition) return;
-        const warmup = new Recognition();
-        warmup.lang = "ru-RU";
-        warmup.onstart = () => warmup.abort();
-        warmup.start();
+        if (Recognition) {
+          const warmup = new Recognition();
+          warmup.lang = "ru-RU";
+          warmup.onstart = () => warmup.abort();
+          warmup.start();
+        }
       } catch (e) {
-        console.warn("STT warmup failed:", e);
+        console.warn("🧊 STT warmup fail:", e);
       }
+
+      // Прогрев серверов
+      fetch(OPENAI_PROXY_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: [{ role: "user", content: "ping" }] })
+      });
+
+      fetch(STREAM_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: "Тест" })
+      });
     });
   </script>
 </body>
