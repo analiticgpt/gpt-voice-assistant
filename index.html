@@ -136,26 +136,20 @@
       } catch (err) {
         console.warn("💥 Ошибка в цикле:", err);
         document.getElementById("status").innerText = "⛔ Ошибка: " + err;
-        await new Promise(r => setTimeout(r, 1500)); // пауза перед перезапуском
+        await new Promise(r => setTimeout(r, 1500));
       } finally {
         isRunning = false;
       }
     }
 
-    document.getElementById("mic-btn").onclick = async () => {
-      try {
-        await navigator.mediaDevices.getUserMedia({ audio: true });
-      } catch {
-        alert("🎤 Разреши доступ к микрофону");
-        return;
-      }
-
+    document.getElementById("mic-btn").onclick = () => {
+      messages = [];
       document.getElementById("output").innerText = "";
       dialogLoop();
     };
 
     window.addEventListener("load", () => {
-      // Прогрев STT
+      // STT прогрев
       try {
         const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (Recognition) {
