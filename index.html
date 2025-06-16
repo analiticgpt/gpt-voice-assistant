@@ -140,7 +140,7 @@
 <section class="hero">
   <div class="hero-text">
     <h2>Списание долгов через банкротство</h2>
-    <p>Бесплатная консультация, быстрая подача, без стресса. Наш голосовой помощник поможет вам прямо сейчас.</p>
+    <p>Бесплатная консультация по банкротству. Юрист сейчас онлайн. Сэкономьте время и деньги — нажмите на микрофон.</p>
   </div>
   <div class="hero-img">
     <img src="https://i.imgur.com/57vEn4P.png" alt="Анна, ваш помощник">
@@ -157,7 +157,7 @@
 </section>
 
 <footer>
-  <p>&copy; 2025 ЮК «Есть Решение»</p>
+  <p>© 2025 ЮК «Есть Решение»</p>
 </footer>
 
 <button id="mic-btn"></button>
@@ -166,7 +166,7 @@
 <div id="output"></div>
 <audio id="audio-player" autoplay></audio>
 
-<!-- 💬 ВСПЛЫВАЮЩАЯ ФОРМА -->
+<!-- ФОРМА ЛИДА -->
 <div id="lead-form-overlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.5); z-index:10000; justify-content:center; align-items:center;">
   <div style="background:#fff; padding:20px 25px; border-radius:10px; width:90%; max-width:400px; position:relative;">
     <button onclick="closeLeadForm()" style="position:absolute; top:10px; right:15px; font-size:18px; background:none; border:none; cursor:pointer;">✕</button>
@@ -183,6 +183,7 @@
 <script>
   const OPENAI_PROXY_URL = "https://openai-gpt-proxy.onrender.com/gpt";
   const STREAM_URL = "https://elevenlabs-render-proxy.onrender.com/stream";
+  const LEAD_URL = "https://openai-gpt-proxy.onrender.com/lead";
 
   let messages = [];
   let isRunning = false;
@@ -226,6 +227,7 @@
       body: JSON.stringify({ messages: messages.slice(-10) })
     });
     const data = await res.json();
+    if (data.choices?.[0]?.message?.triggerForm) openLeadForm();
     return data.choices?.[0]?.message?.content || "❌ GPT не ответил";
   }
 
@@ -239,11 +241,6 @@
       body: JSON.stringify({ text })
     });
 
-    if (!res.ok) {
-      indicator.style.display = "none";
-      return;
-    }
-
     const audioBlob = new Blob([await res.arrayBuffer()], { type: "audio/mpeg" });
     if (audioBlob.size < 1000) {
       indicator.style.display = "none";
@@ -254,12 +251,7 @@
     const audio = document.getElementById("audio-player");
     audio.src = audioUrl;
     audio.load();
-
-    try {
-      await audio.play();
-    } catch (err) {
-      console.warn("🎧 autoplay error:", err);
-    }
+    await audio.play().catch(() => {});
 
     await new Promise(resolve => {
       audio.onended = resolve;
@@ -301,7 +293,6 @@
     dialogLoop();
   };
 
-  // 🧾 Форма лида
   function openLeadForm() {
     document.getElementById('lead-form-overlay').style.display = 'flex';
   }
@@ -310,14 +301,21 @@
     document.getElementById('lead-form-overlay').style.display = 'none';
   }
 
-  function submitLead(event) {
+  async function submitLead(event) {
     event.preventDefault();
     const name = document.getElementById("name").value.trim();
     const phone = document.getElementById("phone").value.trim();
-    console.log("📬 Лид отправлен:", name, phone);
     closeLeadForm();
-    alert("Спасибо! Мы свяжемся с вами.");
-    // сюда вставим fetch позже
+
+    const res = await fetch(LEAD_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, phone })
+    });
+
+    const data = await res.json();
+    const msg = data.message || "Спасибо! Мы свяжемся с вами.";
+    await playTTS(msg);
   }
 
   document.getElementById("phone").addEventListener("input", function(e) {
