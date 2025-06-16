@@ -1,195 +1,292 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <title>Юридическая помощь по банкротству</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <title>Юридическая компания «Есть Решение»</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
       margin: 0;
-      padding: 0;
-      background-color: #ffffff;
-      font-family: Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-end;
-      min-height: 100vh;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .character {
-      width: 320px;
-      max-width: 80%;
-      height: auto;
-      margin-bottom: 20px;
-      pointer-events: none;
-      user-select: none;
-    }
-
-    .text-box {
-      text-align: center;
-      margin-bottom: 100px;
-      padding: 0 20px;
-      font-size: 18px;
-      line-height: 1.5;
+      font-family: "Segoe UI", sans-serif;
+      background: #f9f9f9;
       color: #333;
-      white-space: pre-line;
+    }
+
+    header {
+      background-color: #003366;
+      padding: 20px;
+      color: white;
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 26px;
+    }
+
+    .hero {
+      background-color: #e3f2fd;
+      padding: 60px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .hero-text {
+      flex: 1 1 300px;
+      max-width: 600px;
+    }
+
+    .hero-text h2 {
+      font-size: 28px;
+      margin: 0 0 10px 0;
+      color: #003366;
+    }
+
+    .hero-text p {
+      font-size: 18px;
+    }
+
+    .hero-img {
+      flex: 1 1 250px;
+      text-align: center;
+    }
+
+    .hero-img img {
+      max-width: 100%;
+      height: auto;
+    }
+
+    .section {
+      padding: 40px 20px;
+      max-width: 1000px;
+      margin: auto;
+    }
+
+    .section h3 {
+      color: #003366;
+    }
+
+    footer {
+      background-color: #003366;
+      color: white;
+      text-align: center;
+      padding: 20px;
     }
 
     #mic-btn {
       position: fixed;
       bottom: 20px;
       right: 20px;
-      width: 70px;
-      height: 70px;
+      z-index: 9999;
+      width: 60px;
+      height: 60px;
+      background: url('https://i.imgur.com/MxjPNdW.png') no-repeat center;
+      background-size: 70%;
       border: none;
       border-radius: 50%;
-      background: transparent;
+      background-color: #007bff;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
       cursor: pointer;
-      z-index: 9999;
     }
 
-    #mic-btn img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
+    #voice-indicator {
+      position: fixed;
+      bottom: 95px;
+      right: 34px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background-color: limegreen;
+      animation: pulse 1s infinite ease-in-out;
+      display: none;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.5); opacity: 0.5; }
+      100% { transform: scale(1); opacity: 1; }
     }
 
     #status, #output, #audio-player {
       display: none;
     }
+
+    @media (max-width: 768px) {
+      .hero {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+      }
+
+      .hero-text {
+        order: 2;
+      }
+
+      .hero-img {
+        order: 1;
+        margin-bottom: 20px;
+      }
+    }
   </style>
 </head>
 <body>
-  <div class="text-box">
-    Бесплатная консультация по банкротству<br />
-    Юрист сейчас онлайн<br />
-    Сэкономьте время и деньги<br />
-    Нажмите на микрофон
+
+<header>
+  <h1>Юридическая компания «Есть Решение»</h1>
+</header>
+
+<section class="hero">
+  <div class="hero-text">
+    <h2>Списание долгов через банкротство</h2>
+    <p>Бесплатная консультация, быстрая подача, без стресса. Наш голосовой помощник поможет вам прямо сейчас.</p>
   </div>
-  <img class="character" src="https://i.imgur.com/57vEn4P.png" alt="Персонаж" loading="lazy" />
-  <button id="mic-btn">
-    <img src="https://i.imgur.com/MxjPNdW.png" alt="Микрофон" />
-  </button>
-  <div id="status"></div>
-  <div id="output"></div>
-  <audio id="audio-player" autoplay></audio>
+  <div class="hero-img">
+    <img src="https://i.imgur.com/57vEn4P.png" alt="Анна, ваш помощник">
+  </div>
+</section>
 
-  <script>
-    const OPENAI_PROXY_URL = "https://openai-gpt-proxy.onrender.com/gpt";
-    const STREAM_URL = "https://elevenlabs-render-proxy.onrender.com/stream";
+<section class="section">
+  <h3>Почему выбирают нас</h3>
+  <ul>
+    <li>✅ Опыт более 7 лет</li>
+    <li>✅ Работаем по всей России</li>
+    <li>✅ Персональный юрист и полное сопровождение</li>
+  </ul>
+</section>
 
-    let messages = [];
-    let isRunning = false;
+<footer>
+  <p>&copy; 2025 ЮК «Есть Решение»</p>
+</footer>
 
-    async function recognizeSpeech(timeout = 10000) {
-      return new Promise((resolve, reject) => {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) return reject("SpeechRecognition не поддерживается");
+<button id="mic-btn"></button>
+<div id="voice-indicator"></div>
+<div id="status"></div>
+<div id="output"></div>
+<audio id="audio-player" autoplay></audio>
 
-        const recognition = new SpeechRecognition();
-        recognition.lang = "ru-RU";
-        recognition.interimResults = false;
+<script>
+  const OPENAI_PROXY_URL = "https://openai-gpt-proxy.onrender.com/gpt";
+  const STREAM_URL = "https://elevenlabs-render-proxy.onrender.com/stream";
 
-        const timer = setTimeout(() => {
-          recognition.stop();
-          reject("⏱️ Время ожидания истекло");
-        }, timeout);
+  let messages = [];
+  let isRunning = false;
+  let greeted = false;
 
-        recognition.onstart = () => console.log("🎙️ Слушаю...");
-        recognition.onresult = (event) => {
-          clearTimeout(timer);
-          recognition.stop();
-          const text = event.results[0][0].transcript;
-          resolve(text);
-        };
-        recognition.onerror = (err) => {
-          clearTimeout(timer);
-          recognition.stop();
-          console.warn("🛑 STT error:", err);
-          reject(err.error || "Ошибка распознавания");
-        };
+  async function recognizeSpeech(timeout = 10000) {
+    return new Promise((resolve, reject) => {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) return reject("SpeechRecognition не поддерживается");
 
-        recognition.start();
-      });
+      const recognition = new SpeechRecognition();
+      recognition.lang = "ru-RU";
+      recognition.interimResults = false;
+
+      const timer = setTimeout(() => {
+        recognition.stop();
+        reject("⏱️ Время ожидания истекло");
+      }, timeout);
+
+      recognition.onresult = (event) => {
+        clearTimeout(timer);
+        recognition.stop();
+        const text = event.results[0][0].transcript;
+        resolve(text);
+      };
+
+      recognition.onerror = (err) => {
+        clearTimeout(timer);
+        recognition.stop();
+        reject(err.error || "Ошибка распознавания");
+      };
+
+      recognition.start();
+    });
+  }
+
+  async function askGPT() {
+    const res = await fetch(OPENAI_PROXY_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages: messages.slice(-10) })
+    });
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content || "❌ GPT не ответил";
+  }
+
+  async function playTTS(text) {
+    const indicator = document.getElementById("voice-indicator");
+    indicator.style.display = "block";
+
+    const res = await fetch(STREAM_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text })
+    });
+
+    if (!res.ok) {
+      indicator.style.display = "none";
+      return;
     }
 
-    async function askGPT() {
-      const res = await fetch(OPENAI_PROXY_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: messages.slice(-10) })
-      });
-      const data = await res.json();
-      return data.choices?.[0]?.message?.content || "❌ GPT не ответил";
+    const audioBlob = new Blob([await res.arrayBuffer()], { type: "audio/mpeg" });
+    if (audioBlob.size < 1000) {
+      indicator.style.display = "none";
+      return;
     }
 
-    async function playTTS(text) {
-      const res = await fetch(STREAM_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text })
-      });
+    const audioUrl = URL.createObjectURL(audioBlob);
+    const audio = document.getElementById("audio-player");
+    audio.src = audioUrl;
+    audio.load();
 
-      if (!res.ok) {
-        console.warn("🛑 Fetch error:", await res.text());
-        return;
-      }
-
-      const audioBlob = new Blob([await res.arrayBuffer()], { type: "audio/mpeg" });
-      if (audioBlob.size < 1000) return;
-
-      const audioUrl = URL.createObjectURL(audioBlob);
-      const audio = document.getElementById("audio-player");
-      audio.src = audioUrl;
-      audio.load();
-
-      try {
-        await audio.play();
-      } catch (err) {
-        console.warn("🎧 autoplay error:", err);
-      }
-
-      await new Promise(resolve => {
-        audio.onended = resolve;
-        audio.onerror = resolve;
-      });
+    try {
+      await audio.play();
+    } catch (err) {
+      console.warn("🎧 autoplay error:", err);
     }
 
-    async function dialogLoop() {
-      if (isRunning) return;
-      isRunning = true;
+    await new Promise(resolve => {
+      audio.onended = resolve;
+      audio.onerror = resolve;
+    });
 
-      try {
-        // Приветственное сообщение
+    indicator.style.display = "none";
+  }
+
+  async function dialogLoop() {
+    if (isRunning) return;
+    isRunning = true;
+
+    try {
+      if (!greeted) {
         messages.push({ role: "user", content: "Пользователь вошел" });
-        const hello = await askGPT();
-        messages.push({ role: "assistant", content: hello });
-        await playTTS(hello);
-
-        while (true) {
-          await new Promise(r => setTimeout(r, 600));
-          const userText = await recognizeSpeech();
-          messages.push({ role: "user", content: userText });
-
-          const reply = await askGPT();
-          messages.push({ role: "assistant", content: reply });
-
-          await playTTS(reply);
-        }
-      } catch (err) {
-        console.warn("💥 Ошибка:", err);
-        await new Promise(r => setTimeout(r, 1500));
-      } finally {
-        isRunning = false;
+        greeted = true;
+        const reply = "<prosody rate='medium'><emphasis level='moderate'>Здравствуйте!</emphasis> Я Анна, ваш голосовой консультант. <break time='400ms'/> Можете задать вопрос — я помогу разобраться.</prosody>";
+        messages.push({ role: "assistant", content: reply });
+        await playTTS(reply);
       }
-    }
 
-    document.getElementById("mic-btn").onclick = () => {
-      dialogLoop();
-    };
-  </script>
+      while (true) {
+        await new Promise(r => setTimeout(r, 600));
+        const userText = await recognizeSpeech();
+        messages.push({ role: "user", content: userText });
+        const reply = await askGPT();
+        messages.push({ role: "assistant", content: reply });
+        await playTTS(reply);
+      }
+    } catch (err) {
+      console.warn("💥 Ошибка:", err);
+    } finally {
+      isRunning = false;
+    }
+  }
+
+  document.getElementById("mic-btn").onclick = () => {
+    dialogLoop();
+  };
+</script>
+
 </body>
 </html>
