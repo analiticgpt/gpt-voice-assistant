@@ -166,6 +166,20 @@
 <div id="output"></div>
 <audio id="audio-player" autoplay></audio>
 
+<!-- 💬 ВСПЛЫВАЮЩАЯ ФОРМА -->
+<div id="lead-form-overlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.5); z-index:10000; justify-content:center; align-items:center;">
+  <div style="background:#fff; padding:20px 25px; border-radius:10px; width:90%; max-width:400px; position:relative;">
+    <button onclick="closeLeadForm()" style="position:absolute; top:10px; right:15px; font-size:18px; background:none; border:none; cursor:pointer;">✕</button>
+    <h3 style="margin-top:0;">Оставьте заявку</h3>
+    <p style="margin-bottom:10px;">Мы перезвоним вам в ближайшее время</p>
+    <form id="lead-form" onsubmit="submitLead(event)">
+      <input type="text" id="name" name="name" placeholder="Ваше имя" required style="width:100%;padding:10px;margin-bottom:10px;">
+      <input type="tel" id="phone" name="phone" placeholder="+7 999 999-99-99" pattern="\\+7\\s\\d{3}\\s\\d{3}-\\d{2}-\\d{2}" required style="width:100%;padding:10px;margin-bottom:15px;">
+      <button type="submit" style="width:100%;padding:10px;background:#003366;color:#fff;border:none;border-radius:5px;">Отправить</button>
+    </form>
+  </div>
+</div>
+
 <script>
   const OPENAI_PROXY_URL = "https://openai-gpt-proxy.onrender.com/gpt";
   const STREAM_URL = "https://elevenlabs-render-proxy.onrender.com/stream";
@@ -286,6 +300,40 @@
   document.getElementById("mic-btn").onclick = () => {
     dialogLoop();
   };
+
+  // 🧾 Форма лида
+  function openLeadForm() {
+    document.getElementById('lead-form-overlay').style.display = 'flex';
+  }
+
+  function closeLeadForm() {
+    document.getElementById('lead-form-overlay').style.display = 'none';
+  }
+
+  function submitLead(event) {
+    event.preventDefault();
+    const name = document.getElementById("name").value.trim();
+    const phone = document.getElementById("phone").value.trim();
+    console.log("📬 Лид отправлен:", name, phone);
+    closeLeadForm();
+    alert("Спасибо! Мы свяжемся с вами.");
+    // сюда вставим fetch позже
+  }
+
+  document.getElementById("phone").addEventListener("input", function(e) {
+    this.value = this.value
+      .replace(/[^\d+]/g, "")
+      .replace(/^(\+7|8)?(\d{0,3})(\d{0,3})(\d{0,2})(\d{0,2}).*/, function (_, c1, c2, c3, c4, c5) {
+        let result = "+7";
+        if (c2) result += " " + c2;
+        if (c3) result += " " + c3;
+        if (c4) result += "-" + c4;
+        if (c5) result += "-" + c5;
+        return result;
+      });
+  });
+
+  window.openLeadForm = openLeadForm;
 </script>
 
 </body>
