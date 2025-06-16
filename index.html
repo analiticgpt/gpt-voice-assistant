@@ -1,165 +1,80 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Банкротство физлиц в Иркутске — Юридическая компания «Есть решение»</title>
-  <meta name="description" content="Списание долгов через банкротство физлиц — бесплатно под ключ. Работаем через МФЦ и суд. Официальная юридическая компания «Есть решение».">
+  <meta charset="UTF-8" />
+  <title>Юридическая помощь по банкротству</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
       margin: 0;
+      padding: 0;
+      background-color: #ffffff;
       font-family: Arial, sans-serif;
-      background: #f6f8fa;
-      color: #222;
-    }
-    header {
-      background: #17468c;
-      color: white;
-      padding: 20px;
-      text-align: center;
-    }
-    .container {
-      padding: 20px;
-      max-width: 1100px;
-      margin: auto;
-    }
-    h1, h2 {
-      color: #17468c;
-    }
-    .hero {
       display: flex;
-      flex-wrap: wrap;
+      flex-direction: column;
       align-items: center;
-      justify-content: space-between;
-      gap: 20px;
+      justify-content: flex-end;
+      min-height: 100vh;
+      position: relative;
+      overflow: hidden;
     }
-    .hero-text {
-      flex: 1;
-    }
-    .hero-img {
-      flex: 1;
-      max-width: 300px;
-    }
-    .hero-img img {
-      width: 100%;
+
+    .character {
+      width: 320px;
+      max-width: 80%;
       height: auto;
-      border-radius: 10px;
-      display: block;
-      margin: auto;
+      margin-bottom: 20px;
+      pointer-events: none;
+      user-select: none;
     }
-    .section {
-      margin-top: 40px;
-    }
-    .image-placeholder {
-      width: 100%;
-      height: 200px;
-      background: #ddd;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #999;
-      font-size: 16px;
-      margin: 20px 0;
-    }
-    footer {
-      background: #222;
-      color: white;
-      padding: 20px;
+
+    .text-box {
       text-align: center;
+      margin-bottom: 100px;
+      padding: 0 20px;
+      font-size: 18px;
+      line-height: 1.5;
+      color: #333;
+      white-space: pre-line;
     }
-    .contacts {
-      margin-top: 20px;
-    }
-    .vk-icon {
-      width: 24px;
-      vertical-align: middle;
-      margin-right: 5px;
-    }
+
     #mic-btn {
       position: fixed;
       bottom: 20px;
       right: 20px;
-      z-index: 9999;
-      font-size: 28px;
-      padding: 15px;
+      width: 70px;
+      height: 70px;
       border: none;
       border-radius: 50%;
-      background-color: #17468c;
-      color: white;
+      background: transparent;
       cursor: pointer;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      z-index: 9999;
     }
-    @media (max-width: 768px) {
-      .hero {
-        flex-direction: column;
-      }
-      .hero-img {
-        max-width: 200px;
-      }
+
+    #mic-btn img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    #status, #output, #audio-player {
+      display: none;
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Юридическая компания «Есть решение»</h1>
-    <p>Помогаем списать долги через банкротство в Иркутске и по всей России</p>
-  </header>
-
-  <div class="container">
-    <div class="hero">
-      <div class="hero-text">
-        <h2>Банкротство физлиц под ключ</h2>
-        <p>Если у вас накопились долги, и вы не справляетесь — мы поможем списать их полностью через официальную процедуру банкротства. Бесплатная консультация, подача через МФЦ или суд.</p>
-      </div>
-      <div class="hero-img">
-        <img src="https://i.imgur.com/57vEn4P.png" alt="Юрист Анна" loading="lazy">
-      </div>
-    </div>
-
-    <div class="section">
-      <h2>Что такое банкротство физических лиц?</h2>
-      <p>Это законный способ списать все долги через суд или МФЦ. Подходит, если задолженность превышает 100 000 ₽, и вы не можете платить.</p>
-      <div class="image-placeholder">Картинка про долги</div>
-    </div>
-
-    <div class="section">
-      <h2>Банкротство через МФЦ</h2>
-      <p>Процедура без суда. Подходит, если у вас нет имущества, доходов и исполнительных производств. Мы поможем собрать все документы и подать заявление.</p>
-      <div class="image-placeholder">Картинка про МФЦ</div>
-    </div>
-
-    <div class="section">
-      <h2>Судебное банкротство</h2>
-      <p>Подходит, если есть зарплата, имущество или кредиты с залогом. Мы подаём заявление в арбитражный суд, сопровождаем на всех этапах.</p>
-      <div class="image-placeholder">Картинка про суд</div>
-    </div>
-
-    <div class="section">
-      <h2>Этапы банкротства</h2>
-      <ol>
-        <li>Бесплатная консультация</li>
-        <li>Сбор документов</li>
-        <li>Подача заявления</li>
-        <li>Списание долгов</li>
-      </ol>
-    </div>
-
-    <div class="section">
-      <h2>Контакты</h2>
-      <p>Адрес: 664007, г. Иркутск, ул. Поленова 1/1, офис 213</p>
-      <p>Телефон: 8 800 600 38 23</p>
-      <p>
-        <img class="vk-icon" src="https://upload.wikimedia.org/wikipedia/commons/2/21/VK.com-logo.svg" alt="ВКонтакте">
-        <a href="https://vk.com/bankrot_irk" style="color: #17468c; text-decoration: none;">Официальное сообщество ВК</a>
-      </p>
-    </div>
+  <div class="text-box">
+    Бесплатная консультация по банкротству<br />
+    Юрист сейчас онлайн<br />
+    Сэкономьте время и деньги<br />
+    Нажмите на микрофон
   </div>
-
-  <footer>
-    © 2025 Юридическая компания «Есть решение»
-  </footer>
-
-  <button id="mic-btn">🎤</button>
+  <img class="character" src="https://i.imgur.com/57vEn4P.png" alt="Персонаж" loading="lazy" />
+  <button id="mic-btn">
+    <img src="https://i.imgur.com/MxjPNdW.png" alt="Микрофон" />
+  </button>
+  <div id="status"></div>
+  <div id="output"></div>
   <audio id="audio-player" autoplay></audio>
 
   <script>
@@ -168,7 +83,6 @@
 
     let messages = [];
     let isRunning = false;
-    let greeted = false;
 
     async function recognizeSpeech(timeout = 10000) {
       return new Promise((resolve, reject) => {
@@ -194,6 +108,7 @@
         recognition.onerror = (err) => {
           clearTimeout(timer);
           recognition.stop();
+          console.warn("🛑 STT error:", err);
           reject(err.error || "Ошибка распознавания");
         };
 
@@ -218,7 +133,11 @@
         body: JSON.stringify({ text })
       });
 
-      if (!res.ok) return;
+      if (!res.ok) {
+        console.warn("🛑 Fetch error:", await res.text());
+        return;
+      }
+
       const audioBlob = new Blob([await res.arrayBuffer()], { type: "audio/mpeg" });
       if (audioBlob.size < 1000) return;
 
@@ -244,15 +163,14 @@
       isRunning = true;
 
       try {
-        if (!greeted) {
-          messages.push({ role: "user", content: "Пользователь вошел" });
-          const greet = await askGPT();
-          messages.push({ role: "assistant", content: greet });
-          await playTTS(greet);
-          greeted = true;
-        }
+        // Приветственное сообщение
+        messages.push({ role: "user", content: "Пользователь вошел" });
+        const hello = await askGPT();
+        messages.push({ role: "assistant", content: hello });
+        await playTTS(hello);
 
         while (true) {
+          await new Promise(r => setTimeout(r, 600));
           const userText = await recognizeSpeech();
           messages.push({ role: "user", content: userText });
 
@@ -263,6 +181,7 @@
         }
       } catch (err) {
         console.warn("💥 Ошибка:", err);
+        await new Promise(r => setTimeout(r, 1500));
       } finally {
         isRunning = false;
       }
