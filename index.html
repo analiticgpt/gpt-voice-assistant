@@ -5,7 +5,6 @@
   <title>Юридическая компания «Есть Решение»</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    /* ... весь твой CSS ... */
     body {
       margin: 0;
       font-family: "Segoe UI", sans-serif;
@@ -156,6 +155,7 @@
     <img src="https://i.imgur.com/57vEn4P.png" alt="Анна, ваш помощник">
   </div>
 </section>
+<!-- СРАЗУ СЮДА ЧАТ -->
 <div id="chat"></div>
 <section class="section">
   <h3>Почему выбирают нас</h3>
@@ -196,6 +196,8 @@
   let messages = [];
   let isRunning = false;
   let greeted = false;
+
+  // История для чата (вывод на экран)
   let chatHistory = [];
 
   function renderChat() {
@@ -208,6 +210,7 @@
     chat.scrollTop = chat.scrollHeight;
   }
 
+  // чтобы избежать XSS и глюков с тэгами
   function escapeHTML(str) {
     return String(str)
       .replace(/</g, "&lt;")
@@ -241,47 +244,38 @@
   }
 
   async function askGPT() {
-    try {
-      const res = await fetch(OPENAI_PROXY_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: messages.slice(-10) })
-      });
-      const data = await res.json();
-      if (data.choices?.[0]?.message?.triggerForm) openLeadForm();
-      return data.choices?.[0]?.message?.content || "❌ GPT не ответил";
-    } catch (e) {
-      // Главное — не сломать цикл!
-      return "❌ Сервер не отвечает. Попробуйте позже.";
-    }
+    const res = await fetch(OPENAI_PROXY_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages: messages.slice(-10) })
+    });
+    const data = await res.json();
+    if (data.choices?.[0]?.message?.triggerForm) openLeadForm();
+    return data.choices?.[0]?.message?.content || "❌ GPT не ответил";
   }
 
   async function playTTS(text) {
     const indicator = document.getElementById("voice-indicator");
     indicator.style.display = "block";
-    try {
-      const res = await fetch(STREAM_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text })
-      });
-      const audioBlob = new Blob([await res.arrayBuffer()], { type: "audio/mpeg" });
-      if (audioBlob.size < 1000) {
-        indicator.style.display = "none";
-        return;
-      }
-      const audioUrl = URL.createObjectURL(audioBlob);
-      const audio = document.getElementById("audio-player");
-      audio.src = audioUrl;
-      audio.load();
-      await audio.play().catch(() => {});
-      await new Promise(resolve => {
-        audio.onended = resolve;
-        audio.onerror = resolve;
-      });
-    } catch (e) {
-      // Без паники
+    const res = await fetch(STREAM_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text })
+    });
+    const audioBlob = new Blob([await res.arrayBuffer()], { type: "audio/mpeg" });
+    if (audioBlob.size < 1000) {
+      indicator.style.display = "none";
+      return;
     }
+    const audioUrl = URL.createObjectURL(audioBlob);
+    const audio = document.getElementById("audio-player");
+    audio.src = audioUrl;
+    audio.load();
+    await audio.play().catch(() => {});
+    await new Promise(resolve => {
+      audio.onended = resolve;
+      audio.onerror = resolve;
+    });
     indicator.style.display = "none";
   }
 
@@ -312,9 +306,7 @@
         await playTTS(reply);
       }
     } catch (err) {
-      // Пишем ошибку в чат если надо
-      chatHistory.push({ role: "assistant", content: "❌ Ошибка: " + err });
-      renderChat();
+      console.warn("💥 Ошибка:", err);
     } finally {
       isRunning = false;
     }
@@ -322,7 +314,7 @@
 
   document.getElementById("mic-btn").onclick = () => {
     if (!isRunning) {
-      chatHistory = [];
+      chatHistory = []; // Новый диалог — чистим чат
       renderChat();
       dialogLoop();
     }
@@ -349,27 +341,24 @@
       return;
     }
     closeLeadForm();
-    try {
-      const res = await fetch(LEAD_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, phone })
-      });
-      const data = await res.json();
-      const msg = data.message || "Спасибо! Мы свяжемся с вами.";
-      chatHistory.push({ role: "assistant", content: msg });
-      renderChat();
-      await playTTS(msg);
-    } catch (e) {
-      chatHistory.push({ role: "assistant", content: "❌ Сервер не отвечает. Попробуйте позже." });
-      renderChat();
-    }
+    const res = await fetch(LEAD_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, phone })
+    });
+    const data = await res.json();
+    const msg = data.message || "Спасибо! Мы свяжемся с вами.";
+    // пишем в чат и сразу озвучиваем
+    chatHistory.push({ role: "assistant", content: msg });
+    renderChat();
+    await playTTS(msg);
   }
 
+  // Маска телефона
   document.getElementById("phone").addEventListener("input", function(e) {
     let val = this.value.replace(/\D/g, "");
-    if (val.startsWith("89")) val = "9" + val.slice(2);
-    if (val.startsWith("79")) val = val.slice(1);
+    if (val.startsWith("89")) val = "9" + val.slice(2); // Если кто-то ввёл 89...
+    if (val.startsWith("79")) val = val.slice(1); // Если 7 сразу
     if (val.length > 10) val = val.slice(0, 10);
     let result = "+7";
     if (val.length > 0) result += " " + val.slice(0, 3);
