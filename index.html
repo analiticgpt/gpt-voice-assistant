@@ -49,6 +49,34 @@
       max-width: 100%;
       height: auto;
     }
+    #chat {
+      margin: 32px auto 0 auto;
+      padding: 24px 18px 24px 18px;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      min-height: 160px;
+      max-width: 540px;
+      font-size: 18px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      border: 2px solid #cbe3fd;
+    }
+    .chat-user {
+      color: #1565c0;
+      font-weight: bold;
+      margin-bottom: 1px;
+      display: block;
+    }
+    .chat-bot {
+      color: #008f57;
+      font-weight: bold;
+      margin-bottom: 1px;
+      display: block;
+    }
+    .chat-msg {
+      margin: 0 0 16px 0;
+    }
     .section {
       padding: 40px 20px;
       max-width: 1000px;
@@ -97,22 +125,6 @@
     #status, #audio-player {
       display: none;
     }
-    /* chat window style */
-    #chat {
-      margin: 30px auto 0 auto;
-      padding: 16px 20px 16px 20px;
-      background: #fff;
-      border-radius: 16px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-      min-height: 120px;
-      max-width: 540px;
-      font-size: 17px;
-      line-height: 1.6;
-      white-space: pre-wrap;
-    }
-    .chat-user { color: #01579b; font-weight: bold; margin-bottom: 2px; display: block; }
-    .chat-bot  { color: #007b55; font-weight: bold; margin-bottom: 2px; display: block; }
-    .chat-msg  { margin: 0 0 8px 0; }
     @media (max-width: 768px) {
       .hero {
         flex-direction: column;
@@ -143,7 +155,7 @@
     <img src="https://i.imgur.com/57vEn4P.png" alt="Анна, ваш помощник">
   </div>
 </section>
-<!-- ЧАТ СООБЩЕНИЙ -->
+<!-- СРАЗУ СЮДА ЧАТ -->
 <div id="chat"></div>
 <section class="section">
   <h3>Почему выбирают нас</h3>
@@ -191,11 +203,18 @@
   function renderChat() {
     const chat = document.getElementById('chat');
     chat.innerHTML = chatHistory.map(msg => {
-      if (msg.role === "user")   return `<div class="chat-msg"><span class="chat-user">🧑 Пользователь:</span> ${msg.content}</div>`;
-      if (msg.role === "assistant") return `<div class="chat-msg"><span class="chat-bot">🤖 Анна:</span> ${msg.content}</div>`;
+      if (msg.role === "user")   return `<div class="chat-msg"><span class="chat-user">🧑 Пользователь:</span> ${escapeHTML(msg.content)}</div>`;
+      if (msg.role === "assistant") return `<div class="chat-msg"><span class="chat-bot">🤖 Анна:</span> ${escapeHTML(msg.content)}</div>`;
       return '';
     }).join("");
     chat.scrollTop = chat.scrollHeight;
+  }
+
+  // чтобы избежать XSS и глюков с тэгами
+  function escapeHTML(str) {
+    return String(str)
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
   }
 
   async function recognizeSpeech(timeout = 10000) {
