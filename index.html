@@ -94,9 +94,25 @@
       50% { transform: scale(1.5); opacity: 0.5; }
       100% { transform: scale(1); opacity: 1; }
     }
-    #status, #output, #audio-player {
+    #status, #audio-player {
       display: none;
     }
+    /* chat window style */
+    #chat {
+      margin: 30px auto 0 auto;
+      padding: 16px 20px 16px 20px;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      min-height: 120px;
+      max-width: 540px;
+      font-size: 17px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+    .chat-user { color: #01579b; font-weight: bold; margin-bottom: 2px; display: block; }
+    .chat-bot  { color: #007b55; font-weight: bold; margin-bottom: 2px; display: block; }
+    .chat-msg  { margin: 0 0 8px 0; }
     @media (max-width: 768px) {
       .hero {
         flex-direction: column;
@@ -110,6 +126,7 @@
         order: 1;
         margin-bottom: 20px;
       }
+      #chat { max-width: 98vw; }
     }
   </style>
 </head>
@@ -126,6 +143,8 @@
     <img src="https://i.imgur.com/57vEn4P.png" alt="Анна, ваш помощник">
   </div>
 </section>
+<!-- ЧАТ СООБЩЕНИЙ -->
+<div id="chat"></div>
 <section class="section">
   <h3>Почему выбирают нас</h3>
   <ul>
@@ -141,7 +160,6 @@
 <button id="mic-btn"></button>
 <div id="voice-indicator"></div>
 <div id="status"></div>
-<div id="output"></div>
 <audio id="audio-player" autoplay></audio>
 
 <!-- ФОРМА ЛИДА -->
@@ -166,6 +184,19 @@
   let messages = [];
   let isRunning = false;
   let greeted = false;
+
+  // История для чата (вывод на экран)
+  let chatHistory = [];
+
+  function renderChat() {
+    const chat = document.getElementById('chat');
+    chat.innerHTML = chatHistory.map(msg => {
+      if (msg.role === "user")   return `<div class="chat-msg"><span class="chat-user">🧑 Пользователь:</span> ${msg.content}</div>`;
+      if (msg.role === "assistant") return `<div class="chat-msg"><span class="chat-bot">🤖 Анна:</span> ${msg.content}</div>`;
+      return '';
+    }).join("");
+    chat.scrollTop = chat.scrollHeight;
+  }
 
   async function recognizeSpeech(timeout = 10000) {
     return new Promise((resolve, reject) => {
@@ -235,17 +266,24 @@
     try {
       if (!greeted) {
         messages.push({ role: "user", content: "Пользователь вошел" });
+        chatHistory.push({ role: "user", content: "Пользователь вошел" });
         greeted = true;
         const reply = "<prosody rate='medium'><emphasis level='moderate'>Здравствуйте!</emphasis> Я Анна, ваш голосовой консультант. <break time='400ms'/> Можете задать вопрос — я помогу разобраться.</prosody>";
         messages.push({ role: "assistant", content: reply });
+        chatHistory.push({ role: "assistant", content: reply });
+        renderChat();
         await playTTS(reply);
       }
       while (true) {
         await new Promise(r => setTimeout(r, 600));
         const userText = await recognizeSpeech();
         messages.push({ role: "user", content: userText });
+        chatHistory.push({ role: "user", content: userText });
+        renderChat();
         const reply = await askGPT();
         messages.push({ role: "assistant", content: reply });
+        chatHistory.push({ role: "assistant", content: reply });
+        renderChat();
         await playTTS(reply);
       }
     } catch (err) {
@@ -256,7 +294,11 @@
   }
 
   document.getElementById("mic-btn").onclick = () => {
-    dialogLoop();
+    if (!isRunning) {
+      chatHistory = []; // Новый диалог — чистим чат
+      renderChat();
+      dialogLoop();
+    }
   };
 
   function openLeadForm() {
@@ -287,6 +329,9 @@
     });
     const data = await res.json();
     const msg = data.message || "Спасибо! Мы свяжемся с вами.";
+    // пишем в чат и сразу озвучиваем
+    chatHistory.push({ role: "assistant", content: msg });
+    renderChat();
     await playTTS(msg);
   }
 
