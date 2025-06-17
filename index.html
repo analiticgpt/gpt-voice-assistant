@@ -284,11 +284,8 @@
     isRunning = true;
     try {
       if (!greeted) {
-        messages.push({ role: "user", content: "Пользователь вошел" });
-        chatHistory.push({ role: "user", content: "Пользователь вошел" });
         greeted = true;
         const reply = "<prosody rate='medium'><emphasis level='moderate'>Здравствуйте!</emphasis> Я Анна, ваш голосовой консультант. <break time='400ms'/> Можете задать вопрос — я помогу разобраться.</prosody>";
-        messages.push({ role: "assistant", content: reply });
         chatHistory.push({ role: "assistant", content: reply });
         renderChat();
         await playTTS(reply);
@@ -315,6 +312,7 @@
   document.getElementById("mic-btn").onclick = () => {
     if (!isRunning) {
       chatHistory = []; // Новый диалог — чистим чат
+      messages = [];    // Новый диалог — чистим messages!
       renderChat();
       dialogLoop();
     }
